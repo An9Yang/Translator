@@ -130,4 +130,10 @@ opacity: 1;
 /* Add this line to the existing .output styles */
 animation: fadeIn 0.3s;
 }
-
+.loading {
+  font-size: 16px;
+  font-weight: bold;
+  color: #4caf50;
+  text-align: center;
+  margin-top: 16px;
+}

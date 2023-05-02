@@ -1,6 +1,7 @@
 const API_KEY = "API";
 const url = "https://api.openai.com/v1/completions";
 let inputLanguage;
+let loading;
 let options = {
   method: "POST",
   headers: {
@@ -25,6 +26,9 @@ function setup() {
     myInput.elt.style.height = "auto";
     myInput.elt.style.height = myInput.elt.scrollHeight + "px";
   });
+  loading = createP("Translating...");
+  loading.hide();
+  loading.parent("myOutput");
 }
 
 function getText() {
@@ -45,6 +49,11 @@ function getText() {
     frequency_penalty: 0.0,
     presence_penalty: 0.0,
   });
+
+  /* Add these lines to show the loading indicator */
+  loading.show();
+  myOutput.html("");
+
   fetch(url, options)
     .then((response) => {
       console.log("response", response);
@@ -56,7 +65,15 @@ function getText() {
         myOutputText +=
           "<br/>Q:" + inputValue + "<br/>A:" + response.choices[0].text;
         myOutput.html(myOutputText);
+        /* Add these lines to clear the input field and show the success message */
+        myInput.value("");
+        loading.hide();
       }
+    })
+    .catch((error) => {
+      /* Add these lines to handle errors and hide the loading indicator */
+      console.error("Error:", error);
+      loading.hide();
+      myOutput.html("An error occurred. Please try again.");
     });
 }
-
