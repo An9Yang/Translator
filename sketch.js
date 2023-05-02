@@ -2,6 +2,7 @@ const API_KEY = "API";
 const url = "https://api.openai.com/v1/completions";
 let inputLanguage;
 let loading;
+let improveButton;
 let options = {
   method: "POST",
   headers: {
@@ -29,6 +30,8 @@ function setup() {
   loading = createP("Translating...");
   loading.hide();
   loading.parent("myOutput");
+  improveButton = select("#improveButton");
+  improveButton.mousePressed(improveWriting);
 }
 
 function getText() {
@@ -68,10 +71,52 @@ function getText() {
         /* Add these lines to clear the input field and show the success message */
         myInput.value("");
         loading.hide();
+
+        improveButton.removeAttribute("disabled");
+        improveButton.style("background-color", "#4caf50");
       }
     })
     .catch((error) => {
       /* Add these lines to handle errors and hide the loading indicator */
+      console.error("Error:", error);
+      loading.hide();
+      myOutput.html("An error occurred. Please try again.");
+    });
+}
+
+// Add a new function to improve the writing
+function improveWriting() {
+  const textToImprove = myOutput.html();
+
+  // Show the loading indicator and disable the improveButton
+  loading.show();
+  improveButton.attribute("disabled", "true");
+  improveButton.style("background-color", "#ccc");
+
+  options.body = JSON.stringify({
+    model: "text-davinci-002",
+    prompt: `Please rewrite the following text to make it better: "${textToImprove}"`,
+    temperature: 0.5,
+    max_tokens: 1000,
+    top_p: 1.0,
+    frequency_penalty: 0.0,
+    presence_penalty: 0.0,
+  });
+
+  fetch(url, options)
+    .then((response) => response.json())
+    .then((response) => {
+      if (response.choices && response.choices[0]) {
+        myOutputText = response.choices[0].text;
+        myOutput.html(myOutputText);
+
+        // Hide the loading indicator and enable the improveButton
+        loading.hide();
+        improveButton.removeAttribute("disabled");
+        improveButton.style("background-color", "#4caf50");
+      }
+    })
+    .catch((error) => {
       console.error("Error:", error);
       loading.hide();
       myOutput.html("An error occurred. Please try again.");
