@@ -33,9 +33,12 @@ body {
 
 input,
 select,
+label {
+  font-size: 14px;
+}
 textarea,
 button {
-  font-size: 20px;
+  font-size: 24px;
   margin-bottom: 16px;
 }
 
@@ -127,3 +130,4 @@ opacity: 1;
 /* Add this line to the existing .output styles */
 animation: fadeIn 0.3s;
 }
+

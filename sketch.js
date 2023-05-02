@@ -1,4 +1,4 @@
-const API_KEY = "API key";
+const API_KEY = "API";
 const url = "https://api.openai.com/v1/completions";
 let inputLanguage;
 let options = {
