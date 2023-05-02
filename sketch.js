@@ -1,5 +1,6 @@
-const API_KEY = "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";
+const API_KEY = "API key";
 const url = "https://api.openai.com/v1/completions";
+let inputLanguage;
 let options = {
   method: "POST",
   headers: {
@@ -8,22 +9,22 @@ let options = {
   },
 };
 let myButton, myInput, myOutput, languageSelect;
-let myOutputText = '';
+let myOutputText = "";
 
 function setup() {
   noCanvas();
-  myButton = select('#myButton');
+  myButton = select("#myButton");
   myButton.mousePressed(getText);
+  inputLanguage = select("#inputLanguage");
+  myInput = select("#myInput");
 
-  myInput = select('#myInput');
+  myOutput = select("#myOutput");
 
-  myOutput = select('#myOutput');
-  
-  languageSelect = select('#languageSelect');
+  languageSelect = select("#languageSelect");
   myInput.elt.addEventListener("input", () => {
-  myInput.elt.style.height = "auto";
-  myInput.elt.style.height = myInput.elt.scrollHeight + "px";
-});
+    myInput.elt.style.height = "auto";
+    myInput.elt.style.height = myInput.elt.scrollHeight + "px";
+  });
 }
 
 function getText() {
@@ -52,8 +53,10 @@ function getText() {
     })
     .then((response) => {
       if (response.choices && response.choices[0]) {
-        myOutputText += '<br/>Q:' + inputValue + '<br/>A:' + response.choices[0].text;
+        myOutputText +=
+          "<br/>Q:" + inputValue + "<br/>A:" + response.choices[0].text;
         myOutput.html(myOutputText);
       }
     });
 }
+

@@ -1,5 +1,5 @@
 body {
-  font-family: Arial, sans-serif;
+  font-family: 'Roboto', sans-serif;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -13,110 +13,117 @@ body {
   padding: 40px;
   border-radius: 8px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  max-width: 600px;
+}
+
+.title {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.title h1 {
+  font-size: 36px;
+  color: #4caf50;
+  margin-bottom: 0;
+}
+
+.title h1 span {
+  color: #333;
 }
 
 input,
 select,
+textarea,
 button {
   font-size: 20px;
-  margin: 8px 0;
+  margin-bottom: 16px;
 }
 
-input {
+textarea {
   padding: 12px 12px;
   width: 100%;
   box-sizing: border-box;
+  border: 1px solid #ccc;
+  resize: none;
+  overflow: hidden;
+  min-height: 100px;
 }
 
 select {
   padding: 4px 8px;
   width: 100%;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border: 1px solid #ccc;
 }
 
 button {
-  background-color: #4caf50;
-  color: white;
-  padding: 8px 16px;
-  border: none;
-  cursor: pointer;
-  width: 100%;
-  transition: background-color 0.3s;
+background-color: #4caf50;
+color: white;
+padding: 8px 16px;
+border: none;
+cursor: pointer;
+width: 100%;
+transition: background-color 0.3s;
 }
 
 button:hover {
-  background-color: #45a049;
+background-color: #45a049;
 }
 
 .output {
-  margin-top: 16px;
-  white-space: pre-wrap;
-  background-color: #f5f5f5;
-  padding: 12px;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+margin-top: 16px;
+white-space: pre-wrap;
+background-color: #f5f5f5;
+padding: 12px;
+border-radius: 8px;
+box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-/* Add this code at the bottom of your style.css file */
+.input-container,
+.output-container {
+display: flex;
+flex-direction: column;
+}
+
+label {
+font-weight: 500;
+margin-bottom: 8px;
+}
 
 /* Input animation */
-input:focus {
-  transition: box-shadow 0.3s;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+textarea:focus {
+transition: box-shadow 0.3s;
+box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 /* Button animation */
 @keyframes pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.4);
-  }
-  70% {
-    box-shadow: 0 0 0 10px rgba(76, 175, 80, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(76, 175, 80, 0);
-  }
+0% {
+box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.4);
+}
+70% {
+box-shadow: 0 0 0 10px rgba(76, 175, 80, 0);
+}
+100% {
+box-shadow: 0 0 0 0 rgba(76, 175, 80, 0);
+}
 }
 
 button:focus {
-  animation: pulse 1.5s infinite;
+animation: pulse 1.5s infinite;
 }
 
 /* Output animation */
 @keyframes fadeIn {
-  0% {
-    opacity: 0;
-  }
-  100% {
-    opacity: 1;
-  }
+0% {
+opacity: 0;
+}
+100% {
+opacity: 1;
+}
 }
 
 .output {
-  /* Add this line to the existing .output styles */
-  animation: fadeIn 0.3s;
-}
-input:focus {
-  /* Add this line to the existing input:focus styles */
-  height: 60px;
-}
-
-/* Add a new class for the input box when it's focused */
-input.focused {
-  height: 200px;
-}
-
-/* Textarea styles */
-textarea {
-  width: 100%;
-  resize: none;
-  overflow: hidden;
-  box-sizing: border-box;
-  border: 1px solid #ccc;
-  padding: 5px;
-}
-
-/* Textarea auto-resize */
-textarea:focus {
-  height: auto;
+/* Add this line to the existing .output styles */
+animation: fadeIn 0.3s;
 }
