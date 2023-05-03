@@ -3,6 +3,7 @@ const url = "https://api.openai.com/v1/completions";
 let inputLanguage;
 let loading;
 let improveButton;
+let improveOutput;
 let options = {
   method: "POST",
   headers: {
@@ -12,6 +13,7 @@ let options = {
 };
 let myButton, myInput, myOutput, languageSelect;
 let myOutputText = "";
+let targetLanguage = "";
 
 function setup() {
   noCanvas();
@@ -30,13 +32,14 @@ function setup() {
   loading = createP("Translating...");
   loading.hide();
   loading.parent("myOutput");
+  improveOutput = select("#improveOutput");
   improveButton = select("#improveButton");
   improveButton.mousePressed(improveWriting);
 }
 
 function getText() {
   const inputValue = myInput.value();
-  const targetLanguage = languageSelect.value();
+  targetLanguage = languageSelect.value();
 
   console.log("myinput", inputValue);
   if (!inputValue || inputValue.length <= 0) {
@@ -65,11 +68,11 @@ function getText() {
     })
     .then((response) => {
       if (response.choices && response.choices[0]) {
-        myOutputText +=
-          "<br/>Q:" + inputValue + "<br/>A:" + response.choices[0].text;
+          myOutputText = response.choices[0].text;
+          
         myOutput.html(myOutputText);
         /* Add these lines to clear the input field and show the success message */
-        myInput.value("");
+
         loading.hide();
 
         improveButton.removeAttribute("disabled");
@@ -95,7 +98,7 @@ function improveWriting() {
 
   options.body = JSON.stringify({
     model: "text-davinci-002",
-    prompt: `Please rewrite the following text to make it better: "${textToImprove}"`,
+    prompt: `Translate the following text to ${targetLanguage} and improve the writing: "${textToImprove}"`,
     temperature: 0.5,
     max_tokens: 1000,
     top_p: 1.0,
@@ -108,7 +111,7 @@ function improveWriting() {
     .then((response) => {
       if (response.choices && response.choices[0]) {
         myOutputText = response.choices[0].text;
-        myOutput.html(myOutputText);
+        improveOutput.html(myOutputText);
 
         // Hide the loading indicator and enable the improveButton
         loading.hide();
