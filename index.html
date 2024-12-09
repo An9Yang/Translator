@@ -18,6 +18,9 @@
             --text-color: #1e293b;
             --border-color: #e2e8f0;
             --hover-color: #dbeafe;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --error-color: #ef4444;
             --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
             --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
         }
@@ -36,13 +39,18 @@
         }
 
         .app-container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
             padding: 2rem;
         }
 
+        /* Header Styles */
         header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             margin-bottom: 2rem;
+            padding: 1rem 0;
         }
 
         .logo {
@@ -61,6 +69,54 @@
             font-weight: 600;
         }
 
+        .user-menu {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        /* Main Layout */
+        .main-content {
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            gap: 2rem;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            background: white;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: var(--shadow-md);
+        }
+
+        .sidebar-menu {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .sidebar-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .sidebar-item:hover {
+            background: var(--hover-color);
+            color: var(--primary-color);
+        }
+
+        .sidebar-item.active {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        /* Translation Container */
         .translation-container {
             background: white;
             border-radius: 1rem;
@@ -68,6 +124,34 @@
             padding: 2rem;
         }
 
+        /* Mode Selector */
+        .mode-selector {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            padding: 0.5rem;
+            background: var(--background-color);
+            border-radius: 0.75rem;
+        }
+
+        .mode-btn {
+            flex: 1;
+            padding: 0.75rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: transparent;
+        }
+
+        .mode-btn.active {
+            background: white;
+            box-shadow: var(--shadow-sm);
+        }
+
+        /* Language Controls */
         .language-controls {
             display: flex;
             align-items: center;
@@ -75,28 +159,13 @@
             margin-bottom: 1.5rem;
         }
 
-        .detected-language {
+        .language-select-container {
             flex: 1;
-            padding: 0.75rem;
-            background-color: var(--background-color);
-            border-radius: 0.5rem;
-            font-size: 1rem;
-            color: var(--text-color);
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .detected-language i {
-            color: var(--primary-color);
-        }
-
-        .detected-language span {
-            font-weight: 500;
+            position: relative;
         }
 
         .language-select {
-            flex: 1;
+            width: 100%;
             padding: 0.75rem;
             border: 1px solid var(--border-color);
             border-radius: 0.5rem;
@@ -106,87 +175,94 @@
             transition: all 0.2s;
         }
 
-        .language-select:hover {
-            border-color: var(--primary-color);
+        .detected-language {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem;
+            background: var(--background-color);
+            border-radius: 0.5rem;
         }
 
         .swap-btn {
-            background: var(--hover-color);
-            border: none;
             padding: 0.75rem;
+            border: none;
             border-radius: 0.5rem;
+            background: var(--hover-color);
             color: var(--primary-color);
             cursor: pointer;
             transition: all 0.2s;
         }
 
-        .swap-btn:hover {
-            background: var(--primary-color);
-            color: white;
-        }
-
+        /* Text Areas */
         .text-areas {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 2rem;
-            margin-bottom: 1.5rem;
         }
 
         .input-area, .output-area {
             position: relative;
             background: var(--background-color);
-            border-radius: 0.5rem;
-            padding: 1rem;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
         }
 
-        textarea, .translation-output {
+        textarea {
             width: 100%;
-            min-height: 200px;
+            min-height: 250px;
             padding: 1rem;
             border: 1px solid var(--border-color);
             border-radius: 0.5rem;
             font-size: 1rem;
-            line-height: 1.5;
+            line-height: 1.6;
             background: white;
             resize: vertical;
         }
 
-        textarea:focus {
-            outline: none;
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px var(--hover-color);
+        .translation-output {
+            width: 100%;
+            min-height: 250px;
+            padding: 1rem;
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            line-height: 1.6;
         }
 
+        /* Controls */
         .textarea-controls {
             position: absolute;
-            bottom: 1.5rem;
-            right: 1.5rem;
+            bottom: 2rem;
+            right: 2rem;
             display: flex;
             gap: 0.5rem;
         }
 
-        .clear-btn, .copy-btn {
-            background: white;
-            border: 1px solid var(--border-color);
+        .control-btn {
             padding: 0.5rem;
+            border: 1px solid var(--border-color);
             border-radius: 0.375rem;
+            background: white;
             color: var(--text-color);
             cursor: pointer;
             transition: all 0.2s;
         }
 
-        .clear-btn:hover, .copy-btn:hover {
+        .control-btn:hover {
             background: var(--hover-color);
             color: var(--primary-color);
         }
 
+        /* Action Buttons */
         .action-buttons {
             display: flex;
             gap: 1rem;
-            margin-bottom: 1.5rem;
+            margin-top: 1.5rem;
         }
 
-        .translate-btn, .improve-btn {
+        .primary-btn {
             padding: 0.75rem 1.5rem;
             border: none;
             border-radius: 0.5rem;
@@ -194,55 +270,79 @@
             font-weight: 500;
             cursor: pointer;
             transition: all 0.2s;
+            background: var(--primary-color);
+            color: white;
             display: flex;
             align-items: center;
             gap: 0.5rem;
         }
 
-        .translate-btn {
-            background: var(--primary-color);
-            color: white;
-        }
-
-        .translate-btn:hover {
-            background: var(--secondary-color);
-        }
-
-        .improve-btn {
+        .secondary-btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
             background: var(--hover-color);
             color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
 
-        .improve-btn:hover:not(:disabled) {
-            background: var(--primary-color);
-            color: white;
+        /* Additional Features */
+        .features-panel {
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--border-color);
         }
 
-        .improve-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .improved-writing {
-            background: white;
-            border: 1px solid var(--border-color);
-            border-radius: 0.5rem;
-            padding: 1rem;
+        .feature-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
             margin-top: 1rem;
-            min-height: 100px;
+        }
+
+        .feature-card {
+            padding: 1rem;
+            background: var(--background-color);
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                display: none;
+            }
         }
 
         @media (max-width: 768px) {
             .text-areas {
                 grid-template-columns: 1fr;
             }
-            
-            .app-container {
-                padding: 1rem;
+
+            .feature-cards {
+                grid-template-columns: 1fr 1fr;
             }
-            
-            .translation-container {
-                padding: 1rem;
+        }
+
+        @media (max-width: 480px) {
+            .feature-cards {
+                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -254,73 +354,159 @@
                 <i class="fas fa-language"></i>
                 <h1>TranslateMe</h1>
             </div>
+            <div class="user-menu">
+                <button class="secondary-btn">
+                    <i class="fas fa-history"></i>
+                    History
+                </button>
+                <button class="secondary-btn">
+                    <i class="fas fa-user"></i>
+                    Sign In
+                </button>
+            </div>
         </header>
-        
-        <main class="translation-container">
-            <div class="translation-box">
-                <div class="language-controls">
-                    <div class="detected-language">
-                        <i class="fas fa-magic"></i>
-                        <span>Auto-detecting language</span>
-                        <div id="detectedLang"></div>
+
+        <div class="main-content">
+            <aside class="sidebar">
+                <nav class="sidebar-menu">
+                    <div class="sidebar-item active">
+                        <i class="fas fa-text-height"></i>
+                        <span>Text Translation</span>
                     </div>
-                    <button id="swapLanguages" class="swap-btn">
+                    <div class="sidebar-item">
+                        <i class="fas fa-file-alt"></i>
+                        <span>Document Translation</span>
+                    </div>
+                    <div class="sidebar-item">
+                        <i class="fas fa-globe"></i>
+                        <span>Website Translation</span>
+                    </div>
+                    <div class="sidebar-item">
+                        <i class="fas fa-star"></i>
+                        <span>Saved Translations</span>
+                    </div>
+                    <div class="sidebar-item">
+                        <i class="fas fa-graduation-cap"></i>
+                        <span>Learning Tools</span>
+                    </div>
+                </nav>
+            </aside>
+
+            <main class="translation-container">
+                <div class="mode-selector">
+                    <button class="mode-btn active">Text</button>
+                    <button class="mode-btn">Document</button>
+                    <button class="mode-btn">Website</button>
+                </div>
+
+                <div class="language-controls">
+                    <div class="language-select-container">
+                        <select class="language-select">
+                            <option value="auto">Detect Language</option>
+                            <option value="en">English</option>
+                            <option value="es">Spanish</option>
+                            <option value="fr">French</option>
+                            <option value="de">German</option>
+                            <option value="it">Italian</option>
+                            <option value="pt">Portuguese</option>
+                            <option value="ru">Russian</option>
+                            <option value="zh">Chinese</option>
+                            <option value="ja">Japanese</option>
+                            <option value="ko">Korean</option>
+                        </select>
+                    </div>
+
+                    <button class="swap-btn">
                         <i class="fas fa-exchange-alt"></i>
                     </button>
-                    <select id="outputLanguage" class="language-select">
-                        <option value="en">English</option>
-                        <option value="fr">French</option>
-                        <option value="es">Spanish</option>
-                        <option value="de">German</option>
-                        <option value="it">Italian</option>
-                        <option value="pt">Portuguese</option>
-                        <option value="nl">Dutch</option>
-                        <option value="ru">Russian</option>
-                        <option value="zh">Chinese</option>
-                        <option value="ja">Japanese</option>
-                        <option value="ko">Korean</option>
-                    </select>
+
+                    <div class="language-select-container">
+                        <select class="language-select">
+                            <option value="en">English</option>
+                            <option value="es">Spanish</option>
+                            <option value="fr">French</option>
+                            <option value="de">German</option>
+                            <option value="it">Italian</option>
+                            <option value="pt">Portuguese</option>
+                            <option value="ru">Russian</option>
+                            <option value="zh">Chinese</option>
+                            <option value="ja">Japanese</option>
+                            <option value="ko">Korean</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div class="text-areas">
                     <div class="input-area">
-                        <textarea id="myInput" placeholder="Enter text to translate..." rows="5"></textarea>
+                        <textarea placeholder="Enter text to translate..."></textarea>
                         <div class="textarea-controls">
-                            <button class="clear-btn" id="clearInput">
+                            <button class="control-btn" title="Clear text">
                                 <i class="fas fa-times"></i>
                             </button>
-                            <button class="copy-btn" id="copyInput">
-                                <i class="fas fa-copy"></i>
+                            <button class="control-btn" title="Paste text">
+                                <i class="fas fa-paste"></i>
+                            </button>
+                            <button class="control-btn" title="Read aloud">
+                                <i class="fas fa-volume-up"></i>
                             </button>
                         </div>
                     </div>
 
                     <div class="output-area">
-                        <div id="myOutput" class="translation-output"></div>
+                        <div class="translation-output">Translation will appear here...</div>
                         <div class="textarea-controls">
-                            <button class="copy-btn" id="copyOutput">
+                            <button class="control-btn" title="Copy translation">
                                 <i class="fas fa-copy"></i>
+                            </button>
+                            <button class="control-btn" title="Save translation">
+                                <i class="fas fa-bookmark"></i>
+                            </button>
+                            <button class="control-btn" title="Read aloud">
+                                <i class="fas fa-volume-up"></i>
                             </button>
                         </div>
                     </div>
                 </div>
 
                 <div class="action-buttons">
-                    <button id="myButton" class="translate-btn">
-                        <i class="fas fa-language"></i> Translate
+                    <button class="primary-btn">
+                        <i class="fas fa-language"></i>
+                        Translate
                     </button>
-                    <button id="improveButton" class="improve-btn" disabled>
-                        <i class="fas fa-magic"></i> Improve Writing
+                    <button class="secondary-btn">
+                        <i class="fas fa-magic"></i>
+                        Improve Translation
                     </button>
                 </div>
 
-                <div id="improveOutput" class="improved-writing"></div>
-            </div>
-        </main>
+                <div class="features-panel">
+                    <h3>Additional Tools</h3>
+                    <div class="feature-cards">
+                        <div class="feature-card">
+                            <i class="fas fa-book"></i>
+                            <h4>Dictionary</h4>
+                            <p>Look up words and phrases</p>
+                        </div>
+                        <div class="feature-card">
+                            <i class="fas fa-comments"></i>
+                            <h4>Pronunciation</h4>
+                            <p>Learn correct pronunciation</p>
+                        </div>
+                        <div class="feature-card">
+                            <i class="fas fa-sync"></i>
+                            <h4>Alternative Translations</h4>
+                            <p>See different ways to express</p>
+                        </div>
+                        <div class="feature-card">
+                            <i class="fas fa-users"></i>
+                            <h4>Community Review</h4>
+                            <p>Get feedback from natives</p>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
     </div>
-    <script src="sketch.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
-
-
-
