@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const outputText = document.getElementById('myOutput');
     const translateBtn = document.getElementById('myButton');
     const improveBtn = document.getElementById('improveButton');
-    const inputLang = document.getElementById('inputLanguage');
+    const detectedLangDiv = document.getElementById('detectedLang');
     const outputLang = document.getElementById('outputLanguage');
     const swapLangBtn = document.getElementById('swapLanguages');
     const clearInputBtn = document.getElementById('clearInput');
@@ -26,6 +26,70 @@ document.addEventListener('DOMContentLoaded', () => {
         outputText.textContent = 'Error: Azure OpenAI credentials not configured. Please add your endpoint, API key, and deployment name in sketch.js';
         translateBtn.disabled = true;
         return;
+    }
+
+    // Function to detect language using Azure OpenAI
+    async function detectLanguage(text) {
+        try {
+            if (!text || text.trim().length === 0) {
+                throw new Error('No text to detect language');
+            }
+
+            const response = await fetch(`${endpoint}/openai/deployments/${deploymentName}/chat/completions?api-version=${apiVersion}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'api-key': apiKey
+                },
+                body: JSON.stringify({
+                    messages: [
+                        {
+                            role: "system",
+                            content: "You are a language detection expert. Analyze the given text and respond with only the ISO 639-1 language code (e.g., 'en' for English, 'es' for Spanish, etc.). Provide only the code without any additional text or explanation."
+                        },
+                        {
+                            role: "user",
+                            content: text
+                        }
+                    ],
+                    temperature: 0.3,
+                    max_tokens: 10,
+                    top_p: 0.95,
+                    frequency_penalty: 0,
+                    presence_penalty: 0,
+                    stop: null
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`Language detection failed: ${response.status} ${response.statusText}`);
+            }
+
+            const result = await response.json();
+            return result.choices[0].message.content.trim().toLowerCase();
+        } catch (error) {
+            console.error('Language detection error:', error);
+            return 'auto';
+        }
+    }
+
+    // Function to get language name from code
+    function getLanguageName(code) {
+        const languages = {
+            'en': 'English',
+            'es': 'Spanish',
+            'fr': 'French',
+            'de': 'German',
+            'it': 'Italian',
+            'pt': 'Portuguese',
+            'nl': 'Dutch',
+            'ru': 'Russian',
+            'zh': 'Chinese',
+            'ja': 'Japanese',
+            'ko': 'Korean',
+            'auto': 'Auto'
+        };
+        return languages[code] || code;
     }
 
     // Function to translate text using Azure OpenAI
@@ -142,12 +206,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (text) {
             translateBtn.disabled = true;
             translateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Translating...';
+            outputText.textContent = 'Detecting language...';
+            
+            // Detect the input language
+            const detectedLang = await detectLanguage(text);
+            detectedLangDiv.textContent = ` - ${getLanguageName(detectedLang)}`;
+            
             outputText.textContent = 'Translating...';
-            
-            const fromLang = inputLang.value;
-            const toLang = outputLang.value;
-            
-            const translatedText = await translateText(text, fromLang, toLang);
+            const translatedText = await translateText(text, detectedLang, outputLang.value);
             outputText.textContent = translatedText;
             
             translateBtn.disabled = false;
@@ -172,15 +238,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Swap languages
+    // Swap functionality now only swaps the output text with input
     swapLangBtn.addEventListener('click', () => {
-        const tempLang = inputLang.value;
-        inputLang.value = outputLang.value;
-        outputLang.value = tempLang;
-
         const tempText = inputText.value;
         inputText.value = outputText.textContent;
         outputText.textContent = tempText;
+        // Clear the detected language when swapping
+        detectedLangDiv.textContent = '';
     });
 
     // Clear input
