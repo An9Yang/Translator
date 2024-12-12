@@ -10,6 +10,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         :root {
             --primary-color: #2563eb;
@@ -218,6 +219,7 @@
             line-height: 1.6;
             background: white;
             resize: vertical;
+            font-family: 'Open Sans', sans-serif;
         }
 
         .translation-output {
@@ -229,6 +231,7 @@
             border-radius: 0.5rem;
             font-size: 1rem;
             line-height: 1.6;
+            font-family: 'Open Sans', sans-serif;
         }
 
         /* Controls */
@@ -345,6 +348,106 @@
                 grid-template-columns: 1fr;
             }
         }
+
+        /* Mode-specific containers */
+        .text-mode-container,
+        .document-mode-container,
+        .website-mode-container {
+            display: none;
+        }
+
+        .text-mode-container.active,
+        .document-mode-container.active,
+        .website-mode-container.active {
+            display: block;
+        }
+
+        /* Document mode specific styles */
+        .document-upload-area {
+            border: 2px dashed var(--border-color);
+            border-radius: 0.75rem;
+            padding: 2rem;
+            text-align: center;
+            background: var(--background-color);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .document-upload-area:hover {
+            border-color: var(--primary-color);
+            background: var(--hover-color);
+        }
+
+        .document-upload-icon {
+            font-size: 3rem;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+
+        /* Website mode specific styles */
+        .website-input-container {
+            margin-bottom: 2rem;
+        }
+
+        .website-url-input {
+            width: 100%;
+            padding: 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            font-family: 'Open Sans', sans-serif;
+        }
+
+        .website-preview {
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1rem;
+            background: white;
+            min-height: 400px;
+        }
+
+        /* Document translation status styles */
+        .translation-status {
+            margin-top: 1rem;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            display: none;
+        }
+
+        .translation-status.active {
+            display: block;
+        }
+
+        .translation-status.processing {
+            background-color: var(--hover-color);
+            color: var(--primary-color);
+        }
+
+        .translation-status.success {
+            background-color: #dcfce7;
+            color: var(--success-color);
+        }
+
+        .translation-status.error {
+            background-color: #fee2e2;
+            color: var(--error-color);
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background-color: var(--border-color);
+            border-radius: 2px;
+            margin-top: 0.5rem;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background-color: var(--primary-color);
+            border-radius: 2px;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
     </style>
 </head>
 <body>
@@ -394,9 +497,9 @@
 
             <main class="translation-container">
                 <div class="mode-selector">
-                    <button class="mode-btn active">Text</button>
-                    <button class="mode-btn">Document</button>
-                    <button class="mode-btn">Website</button>
+                    <button class="mode-btn active" data-mode="text">Text</button>
+                    <button class="mode-btn" data-mode="document">Document</button>
+                    <button class="mode-btn" data-mode="website">Website</button>
                 </div>
 
                 <div class="language-controls">
@@ -436,47 +539,81 @@
                     </div>
                 </div>
 
-                <div class="text-areas">
-                    <div class="input-area">
-                        <textarea placeholder="Enter text to translate..."></textarea>
-                        <div class="textarea-controls">
-                            <button class="control-btn" title="Clear text">
-                                <i class="fas fa-times"></i>
-                            </button>
-                            <button class="control-btn" title="Paste text">
-                                <i class="fas fa-paste"></i>
-                            </button>
-                            <button class="control-btn" title="Read aloud">
-                                <i class="fas fa-volume-up"></i>
-                            </button>
+                <!-- Text Mode -->
+                <div class="text-mode-container active">
+                    <div class="text-areas">
+                        <div class="input-area">
+                            <textarea placeholder="Enter text to translate..."></textarea>
+                            <div class="textarea-controls">
+                                <button class="control-btn" title="Clear text">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                                <button class="control-btn" title="Paste text">
+                                    <i class="fas fa-paste"></i>
+                                </button>
+                                <button class="control-btn" title="Read aloud">
+                                    <i class="fas fa-volume-up"></i>
+                                </button>
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="output-area">
-                        <div class="translation-output">Translation will appear here...</div>
-                        <div class="textarea-controls">
-                            <button class="control-btn" title="Copy translation">
-                                <i class="fas fa-copy"></i>
-                            </button>
-                            <button class="control-btn" title="Save translation">
-                                <i class="fas fa-bookmark"></i>
-                            </button>
-                            <button class="control-btn" title="Read aloud">
-                                <i class="fas fa-volume-up"></i>
-                            </button>
+                        <div class="output-area">
+                            <div class="translation-output">Translation will appear here...</div>
+                            <div class="textarea-controls">
+                                <button class="control-btn" title="Copy translation">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                                <button class="control-btn" title="Save translation">
+                                    <i class="fas fa-bookmark"></i>
+                                </button>
+                                <button class="control-btn" title="Read aloud">
+                                    <i class="fas fa-volume-up"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="action-buttons">
-                    <button class="primary-btn">
-                        <i class="fas fa-language"></i>
-                        Translate
-                    </button>
-                    <button class="secondary-btn">
-                        <i class="fas fa-magic"></i>
-                        Improve Translation
-                    </button>
+                <!-- Document Mode -->
+                <div class="document-mode-container">
+                    <div class="document-upload-area">
+                        <i class="fas fa-file-upload document-upload-icon"></i>
+                        <h3>Upload Document</h3>
+                        <p>Drag and drop your document here or click to browse</p>
+                        <p class="supported-formats">Supported formats: PDF, DOCX, TXT, PPTX</p>
+                        <input type="file" id="document-upload" style="display: none" accept=".pdf,.docx,.txt,.pptx">
+                    </div>
+                    <div class="translation-status">
+                        <div class="status-message"></div>
+                        <div class="progress-bar">
+                            <div class="progress-bar-fill"></div>
+                        </div>
+                    </div>
+                    <div class="action-buttons">
+                        <button class="primary-btn" id="translate-document-btn" disabled>
+                            <i class="fas fa-language"></i>
+                            Translate Document
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Website Mode -->
+                <div class="website-mode-container">
+                    <div class="website-input-container">
+                        <input type="url" class="website-url-input" placeholder="Enter website URL (e.g., https://example.com)">
+                    </div>
+                    <div class="website-preview">
+                        <div style="text-align: center; color: var(--text-color);">
+                            <i class="fas fa-globe" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                            <p>Website preview will appear here</p>
+                        </div>
+                    </div>
+                    <div class="action-buttons">
+                        <button class="primary-btn">
+                            <i class="fas fa-language"></i>
+                            Translate Website
+                        </button>
+                    </div>
                 </div>
 
                 <div class="features-panel">
@@ -507,6 +644,210 @@
             </main>
         </div>
     </div>
-    <script src="script.js"></script>
+    <script>
+        // Azure Translator configuration
+        const AZURE_ENDPOINT = 'YOUR_AZURE_ENDPOINT'; // Replace with your Azure endpoint
+        const AZURE_KEY = 'YOUR_AZURE_KEY'; // Replace with your Azure key
+        const AZURE_REGION = 'YOUR_AZURE_REGION'; // Replace with your Azure region
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const modeButtons = document.querySelectorAll('.mode-btn');
+            const sidebarItems = document.querySelectorAll('.sidebar-item');
+            const modeContainers = {
+                text: document.querySelector('.text-mode-container'),
+                document: document.querySelector('.document-mode-container'),
+                website: document.querySelector('.website-mode-container')
+            };
+
+            // Function to switch modes
+            function switchMode(mode) {
+                // Update mode buttons
+                modeButtons.forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.mode === mode);
+                });
+
+                // Update sidebar items
+                sidebarItems.forEach((item, index) => {
+                    if ((mode === 'text' && index === 0) ||
+                        (mode === 'document' && index === 1) ||
+                        (mode === 'website' && index === 2)) {
+                        item.classList.add('active');
+                    } else {
+                        item.classList.remove('active');
+                    }
+                });
+
+                // Show/hide mode containers
+                Object.keys(modeContainers).forEach(key => {
+                    modeContainers[key].classList.toggle('active', key === mode);
+                });
+            }
+
+            // Add click handlers to mode buttons
+            modeButtons.forEach(btn => {
+                btn.addEventListener('click', () => switchMode(btn.dataset.mode));
+            });
+
+            // Add click handlers to sidebar items
+            sidebarItems.forEach((item, index) => {
+                item.addEventListener('click', () => {
+                    if (index === 0) switchMode('text');
+                    else if (index === 1) switchMode('document');
+                    else if (index === 2) switchMode('website');
+                });
+            });
+
+            // Document translation functionality
+            const documentUploadArea = document.querySelector('.document-upload-area');
+            const documentUploadInput = document.querySelector('#document-upload');
+            const translateDocumentBtn = document.querySelector('#translate-document-btn');
+            const translationStatus = document.querySelector('.translation-status');
+            const statusMessage = document.querySelector('.status-message');
+            const progressBarFill = document.querySelector('.progress-bar-fill');
+            let selectedFile = null;
+
+            async function uploadDocument(file) {
+                try {
+                    // Create form data
+                    const formData = new FormData();
+                    formData.append('document', file);
+
+                    // Get source and target languages from selects
+                    const sourceLanguage = document.querySelectorAll('.language-select')[0].value;
+                    const targetLanguage = document.querySelectorAll('.language-select')[1].value;
+
+                    // Show processing status
+                    translationStatus.className = 'translation-status active processing';
+                    statusMessage.textContent = 'Uploading document...';
+                    progressBarFill.style.width = '20%';
+
+                    // First, upload the document to Azure Blob Storage
+                    const uploadResponse = await fetch('/api/upload-document', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (!uploadResponse.ok) throw new Error('Document upload failed');
+
+                    const { sasUrl } = await uploadResponse.json();
+                    progressBarFill.style.width = '40%';
+                    statusMessage.textContent = 'Starting translation...';
+
+                    // Start document translation
+                    const translationResponse = await fetch('/api/translate-document', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            sourceLanguage,
+                            targetLanguage,
+                            documentUrl: sasUrl
+                        })
+                    });
+
+                    if (!translationResponse.ok) throw new Error('Translation request failed');
+
+                    const { operationId } = await translationResponse.json();
+                    progressBarFill.style.width = '60%';
+
+                    // Poll for translation status
+                    await pollTranslationStatus(operationId);
+
+                } catch (error) {
+                    console.error('Translation error:', error);
+                    translationStatus.className = 'translation-status active error';
+                    statusMessage.textContent = `Translation failed: ${error.message}`;
+                    progressBarFill.style.width = '0%';
+                }
+            }
+
+            async function pollTranslationStatus(operationId) {
+                try {
+                    while (true) {
+                        const statusResponse = await fetch(`/api/translation-status/${operationId}`);
+                        if (!statusResponse.ok) throw new Error('Status check failed');
+
+                        const status = await statusResponse.json();
+                        statusMessage.textContent = `Translation progress: ${status.progress}%`;
+                        progressBarFill.style.width = `${60 + (status.progress * 0.4)}%`;
+
+                        if (status.status === 'Succeeded') {
+                            translationStatus.className = 'translation-status active success';
+                            statusMessage.textContent = 'Translation completed! Downloading...';
+                            progressBarFill.style.width = '100%';
+                            
+                            // Download the translated document
+                            window.location.href = status.downloadUrl;
+                            break;
+                        } else if (status.status === 'Failed') {
+                            throw new Error(status.error || 'Translation failed');
+                        }
+
+                        await new Promise(resolve => setTimeout(resolve, 2000));
+                    }
+                } catch (error) {
+                    throw new Error(`Status check failed: ${error.message}`);
+                }
+            }
+
+            // File selection handlers
+            documentUploadArea.addEventListener('click', () => {
+                documentUploadInput.click();
+            });
+
+            documentUploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                documentUploadArea.style.borderColor = getComputedStyle(document.documentElement).getPropertyValue('--primary-color');
+                documentUploadArea.style.background = getComputedStyle(document.documentElement).getPropertyValue('--hover-color');
+            });
+
+            documentUploadArea.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                documentUploadArea.style.borderColor = '';
+                documentUploadArea.style.background = '';
+            });
+
+            documentUploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                documentUploadArea.style.borderColor = '';
+                documentUploadArea.style.background = '';
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    handleFileSelection(files[0]);
+                }
+            });
+
+            documentUploadInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    handleFileSelection(e.target.files[0]);
+                }
+            });
+
+            function handleFileSelection(file) {
+                const validTypes = [
+                    'application/pdf',
+                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                    'text/plain',
+                    'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+                ];
+
+                if (!validTypes.includes(file.type)) {
+                    alert('Please upload a supported document format (PDF, DOCX, TXT, or PPTX)');
+                    return;
+                }
+
+                selectedFile = file;
+                translateDocumentBtn.disabled = false;
+                documentUploadArea.querySelector('p').textContent = `Selected file: ${file.name}`;
+            }
+
+            translateDocumentBtn.addEventListener('click', () => {
+                if (selectedFile) {
+                    uploadDocument(selectedFile);
+                }
+            });
+        });
+    </script>
 </body>
 </html>
