@@ -1,0 +1,46 @@
+async function pollTranslationStatus(operationId) {
+    try {
+        console.log('Polling status for operation ID:', operationId);
+        
+        const response = await fetch(`/api/translation-status/${operationId}`);
+        if (!response.ok) {
+            throw new Error(`Status check failed: ${await response.text()}`);
+        }
+        
+        const data = await response.json();
+        console.log('Status check response:', data);
+
+        if (data.status === 'Succeeded') {
+            // Translation completed successfully
+            document.getElementById('translationProgress').style.display = 'none';
+            document.getElementById('outputText').value = 'Translation completed. Downloading...';
+            
+            // Get the target URL from the response
+            const targetUrl = data.documents[0].targets[0].url;
+            
+            // Download the translated document
+            const downloadResponse = await fetch(targetUrl);
+            const blob = await downloadResponse.blob();
+            const text = await blob.text();
+            document.getElementById('outputText').value = text;
+            
+        } else if (data.status === 'Failed') {
+            // Translation failed
+            document.getElementById('translationProgress').style.display = 'none';
+            const errorMessage = data.error?.message || 'Translation failed';
+            const errorDetails = data.error?.details || {};
+            throw new Error(`Translation failed: ${errorMessage}\nDetails: ${JSON.stringify(errorDetails)}`);
+            
+        } else {
+            // Translation still in progress
+            const progress = data.documents?.[0]?.progress || 0;
+            document.getElementById('translationProgress').value = progress;
+            // Continue polling
+            setTimeout(() => pollTranslationStatus(operationId), 2000);
+        }
+    } catch (error) {
+        document.getElementById('translationProgress').style.display = 'none';
+        console.error('Translation status check error:', error);
+        document.getElementById('outputText').value = `Translation error: ${error.message}`;
+    }
+} 
