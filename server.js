@@ -1,20 +1,15 @@
 require('dotenv').config();
 const express = require('express');
-const multer = require('multer');
 const cors = require('cors');
-const { BlobServiceClient, StorageSharedKeyCredential, generateBlobSASQueryParameters, BlobSASPermissions } = require('@azure/storage-blob');
+const multer = require('multer');
 const axios = require('axios');
+const { BlobServiceClient, StorageSharedKeyCredential, generateBlobSASQueryParameters, BlobSASPermissions } = require('@azure/storage-blob');
 const path = require('path');
 
 const app = express();
 
 // Configure CORS
-app.use(cors({
-    origin: '*',
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
-}));
-
+app.use(cors());
 app.use(express.json());
 app.use(express.static('./'));
 
@@ -32,7 +27,34 @@ const translatorEndpoint = process.env.AZURE_TRANSLATOR_ENDPOINT;
 const translatorRegion = process.env.AZURE_TRANSLATOR_REGION;
 const storageConnectionString = process.env.AZURE_STORAGE_CONNECTION_STRING;
 
-// Parse storage account name and key from connection string
+// Add rate limiting configuration
+const MAX_REQUESTS_PER_MINUTE = 100;
+let requestCount = 0;
+let lastResetTime = Date.now();
+
+// Rate limiting middleware
+function rateLimiter(req, res, next) {
+    const now = Date.now();
+    if (now - lastResetTime > 60000) {
+        requestCount = 0;
+        lastResetTime = now;
+    }
+
+    if (requestCount >= MAX_REQUESTS_PER_MINUTE) {
+        return res.status(429).json({
+            error: 'Too many requests',
+            message: 'Please try again in a minute'
+        });
+    }
+
+    requestCount++;
+    next();
+}
+
+// Apply rate limiter to translation endpoints
+app.use('/api/translate-document', rateLimiter);
+
+// Parse storage account credentials
 const accountPattern = /AccountName=([^;]+)/;
 const keyPattern = /AccountKey=([^;]+)/;
 const accountMatch = storageConnectionString.match(accountPattern);
@@ -44,68 +66,46 @@ if (!accountMatch || !keyMatch) {
 
 const accountName = accountMatch[1];
 const accountKey = keyMatch[1];
-
-// Create SharedKeyCredential
 const sharedKeyCredential = new StorageSharedKeyCredential(accountName, accountKey);
-
-// Initialize Azure Blob Storage client
 const blobServiceClient = BlobServiceClient.fromConnectionString(storageConnectionString);
 const containerName = 'documents';
 
-// Ensure container exists
-async function ensureContainer() {
-    try {
-        const containerClient = blobServiceClient.getContainerClient(containerName);
-        await containerClient.createIfNotExists({
-            access: 'blob'  // Enable public access at container level
-        });
-        return containerClient;
-    } catch (error) {
-        console.error('Container creation error:', error);
-        throw error;
-    }
-}
-
 // Health check endpoint
 app.get('/health', (req, res) => {
-    res.json({ status: 'ok' });
+    res.json({ status: 'ok', services: {
+        translator: true,
+        storage: true
+    }});
 });
 
-// Upload document to Azure Blob Storage
+// Upload document endpoint
 app.post('/api/upload-document', upload.single('document'), async (req, res) => {
     try {
-        console.log('1. Upload request received');
+        console.log('Upload request received');
         
         if (!req.file) {
-            console.log('Error: No file in request');
-            return res.status(400).json({ error: 'No file uploaded' });
+            return res.status(400).json({ 
+                success: false,
+                error: 'No file uploaded',
+                details: 'Please select a file to upload'
+            });
         }
 
-        console.log('2. File details:', {
-            originalname: req.file.originalname,
-            size: req.file.size,
-            mimetype: req.file.mimetype
-        });
+        // Ensure container exists
+        const containerClient = blobServiceClient.getContainerClient(containerName);
+        await containerClient.createIfNotExists();
 
-        // Test storage access
-        console.log('3. Testing storage access...');
-        const containerClient = await ensureContainer();
-        console.log('4. Container access successful');
-        
+        // Upload file to blob storage
         const blobName = `${Date.now()}-${req.file.originalname}`;
         const blockBlobClient = containerClient.getBlockBlobClient(blobName);
-        console.log('5. Blob client created');
-
-        console.log('6. Starting blob upload...');
+        
         await blockBlobClient.uploadData(req.file.buffer, {
             blobHTTPHeaders: {
                 blobContentType: req.file.mimetype
             }
         });
-        console.log('7. Blob upload successful');
 
         // Generate SAS URL
-        console.log('8. Generating SAS token...');
         const sasToken = generateBlobSASQueryParameters(
             {
                 containerName,
@@ -118,49 +118,65 @@ app.post('/api/upload-document', upload.single('document'), async (req, res) => 
         ).toString();
 
         const sasUrl = `${blockBlobClient.url}?${sasToken}`;
-        console.log('9. SAS URL generated:', sasUrl.substring(0, 100) + '...');
 
-        // Test blob access
-        console.log('10. Testing blob access...');
-        try {
-            const testAccess = await axios.head(sasUrl);
-            console.log('11. Blob is accessible:', testAccess.status);
-        } catch (error) {
-            console.error('Blob access test failed:', error.message);
-            throw new Error('Generated blob URL is not accessible');
-        }
+        console.log('Upload successful:', { blobName, sasUrl: sasUrl.substring(0, 50) + '...' });
 
-        res.json({ sasUrl });
-    } catch (error) {
-        console.error('Upload error details:', {
-            message: error.message,
-            stack: error.stack,
-            name: error.name
+        res.json({ 
+            success: true,
+            blobName,
+            sasUrl,
+            message: 'File uploaded successfully'
         });
+
+    } catch (error) {
+        console.error('Upload error:', error);
         res.status(500).json({ 
+            success: false,
             error: 'Upload failed',
             details: error.message
         });
     }
 });
 
-// Start document translation
+// Translate document endpoint
 app.post('/api/translate-document', async (req, res) => {
     try {
-        const { sourceLanguage, targetLanguage, documentUrl } = req.body;
-        console.log('Translation request:', {
-            sourceLanguage,
-            targetLanguage,
-            documentUrl: documentUrl ? documentUrl.substring(0, 100) + '...' : null
-        });
+        // Debug logging
+        console.log('Translation request received');
+        console.log('Headers:', req.headers);
+        console.log('Raw body:', req.body);
 
-        if (!documentUrl) {
-            throw new Error('Document URL is missing');
+        if (!req.body || typeof req.body !== 'object') {
+            console.error('Invalid request body type:', typeof req.body);
+            return res.status(400).json({ 
+                success: false,
+                error: 'Invalid request body',
+                details: 'Request body must be a JSON object'
+            });
         }
 
-        // Create container for translated documents
-        const containerClient = await ensureContainer();
-        const targetBlobName = `translated-${Date.now()}-${path.basename(documentUrl.split('?')[0])}`;
+        const { sourceLanguage, targetLanguage, documentUrl, blobName } = req.body;
+        console.log('Extracted fields:', { sourceLanguage, targetLanguage, blobName, documentUrl: documentUrl ? documentUrl.substring(0, 50) + '...' : undefined });
+
+        // Validate all required fields
+        const missingFields = [];
+        if (!sourceLanguage) missingFields.push('sourceLanguage');
+        if (!targetLanguage) missingFields.push('targetLanguage');
+        if (!documentUrl) missingFields.push('documentUrl');
+        if (!blobName) missingFields.push('blobName');
+
+        if (missingFields.length > 0) {
+            console.error('Missing required fields:', missingFields);
+            return res.status(400).json({ 
+                success: false,
+                error: 'Missing required fields',
+                details: `The following fields are required: ${missingFields.join(', ')}`
+            });
+        }
+
+        // Create target blob for translated document
+        const containerClient = blobServiceClient.getContainerClient(containerName);
+        const targetBlobName = `translated-${blobName}`;
         const targetBlobClient = containerClient.getBlockBlobClient(targetBlobName);
 
         // Generate SAS token for target blob
@@ -168,7 +184,7 @@ app.post('/api/translate-document', async (req, res) => {
             {
                 containerName,
                 blobName: targetBlobName,
-                permissions: BlobSASPermissions.parse("rwc"),
+                permissions: BlobSASPermissions.parse("racw"),
                 startsOn: new Date(),
                 expiresOn: new Date(new Date().valueOf() + 24 * 60 * 60 * 1000),
             },
@@ -176,61 +192,125 @@ app.post('/api/translate-document', async (req, res) => {
         ).toString();
 
         const targetSasUrl = `${targetBlobClient.url}?${targetSasToken}`;
+        console.log('Generated target SAS URL');
 
-        console.log('Sending request to Translator API...');
-        const response = await axios.post(
-            `${translatorEndpoint}batches`,
-            {
-                inputs: [
-                    {
-                        source: {
-                            sourceUrl: documentUrl,
-                            storageSource: 'AzureBlob',
-                            language: sourceLanguage === 'auto' ? null : sourceLanguage
-                        },
-                        targets: [
-                            {
-                                targetUrl: targetSasUrl,
-                                storageSource: 'AzureBlob',
-                                language: targetLanguage
-                            }
-                        ]
-                    }
-                ]
-            },
-            {
-                headers: {
-                    'Ocp-Apim-Subscription-Key': translatorKey,
-                    'Ocp-Apim-Subscription-Region': translatorRegion,
-                    'Content-Type': 'application/json'
-                }
-            }
-        );
-
-        console.log('Translator API response:', {
-            status: response.status,
-            headers: response.headers,
-            data: response.data
-        });
-
-        // The operation-location header contains the URL to check the status
-        const operationLocation = response.headers['operation-location'];
-        if (!operationLocation) {
-            throw new Error('No operation location received from translation service');
+        // Download source document content with error handling
+        let sourceContent;
+        try {
+            console.log('Downloading source document...');
+            const sourceResponse = await axios.get(documentUrl);
+            sourceContent = sourceResponse.data;
+            console.log('Source document downloaded, size:', sourceContent.length);
+        } catch (error) {
+            console.error('Error downloading source document:', error);
+            return res.status(500).json({
+                success: false,
+                error: 'Failed to download source document',
+                details: error.message
+            });
         }
 
-        res.json({ 
-            operationId: operationLocation,  // Send the full operation URL
-            status: 'Accepted',
-            message: 'Translation job started successfully'
+        // Split content into chunks to avoid rate limiting
+        const lines = sourceContent.toString().split('\n');
+        const translatedLines = [];
+        const CHUNK_SIZE = 5; // Further reduced chunk size
+        const DELAY_BETWEEN_CHUNKS = 3000; // Increased delay between chunks
+
+        console.log(`Processing ${lines.length} lines in chunks of ${CHUNK_SIZE}`);
+
+        for (let i = 0; i < lines.length; i += CHUNK_SIZE) {
+            const chunk = lines.slice(i, i + CHUNK_SIZE);
+            const chunkPromises = chunk.map(async (line) => {
+                if (!line.trim()) return '';
+
+                try {
+                    const translationResponse = await axios.post(
+                        `${translatorEndpoint}translate?api-version=3.0&from=${sourceLanguage === 'auto' ? '' : sourceLanguage}&to=${targetLanguage}`,
+                        [{ text: line }],
+                        {
+                            headers: {
+                                'Ocp-Apim-Subscription-Key': translatorKey,
+                                'Ocp-Apim-Subscription-Region': translatorRegion,
+                                'Content-Type': 'application/json'
+                            }
+                        }
+                    );
+
+                    if (translationResponse.data && translationResponse.data[0] && translationResponse.data[0].translations) {
+                        return translationResponse.data[0].translations[0].text;
+                    }
+                    return line; // Return original line if translation fails
+                } catch (error) {
+                    console.error('Translation error for line:', error.message);
+                    if (error.response?.status === 429) {
+                        // If rate limited, wait longer and retry once
+                        await new Promise(resolve => setTimeout(resolve, 5000));
+                        try {
+                            const retryResponse = await axios.post(
+                                `${translatorEndpoint}translate?api-version=3.0&from=${sourceLanguage === 'auto' ? '' : sourceLanguage}&to=${targetLanguage}`,
+                                [{ text: line }],
+                                {
+                                    headers: {
+                                        'Ocp-Apim-Subscription-Key': translatorKey,
+                                        'Ocp-Apim-Subscription-Region': translatorRegion,
+                                        'Content-Type': 'application/json'
+                                    }
+                                }
+                            );
+                            if (retryResponse.data && retryResponse.data[0] && retryResponse.data[0].translations) {
+                                return retryResponse.data[0].translations[0].text;
+                            }
+                        } catch (retryError) {
+                            console.error('Retry failed:', retryError.message);
+                        }
+                    }
+                    return line; // Return original line on error
+                }
+            });
+
+            // Process chunk with error handling
+            try {
+                const translatedChunk = await Promise.all(chunkPromises);
+                translatedLines.push(...translatedChunk);
+                console.log(`Processed chunk ${i / CHUNK_SIZE + 1}/${Math.ceil(lines.length / CHUNK_SIZE)}`);
+
+                // Add delay between chunks to avoid rate limiting
+                if (i + CHUNK_SIZE < lines.length) {
+                    await new Promise(resolve => setTimeout(resolve, DELAY_BETWEEN_CHUNKS));
+                }
+            } catch (error) {
+                console.error('Chunk processing error:', error);
+                // Continue with next chunk even if current chunk fails
+            }
+        }
+
+        // Upload translated content
+        const translatedContent = translatedLines.join('\n');
+        try {
+            await targetBlobClient.upload(translatedContent, translatedContent.length);
+            console.log('Translated content uploaded successfully');
+        } catch (error) {
+            console.error('Error uploading translated content:', error);
+            return res.status(500).json({
+                success: false,
+                error: 'Failed to upload translated content',
+                details: error.message
+            });
+        }
+
+        console.log('Translation completed successfully');
+        res.json({
+            success: true,
+            status: 'Succeeded',
+            targetBlobName: targetBlobName,
+            message: 'Document translation completed'
         });
+
     } catch (error) {
-        console.error('Translation error details:', {
-            message: error.message,
-            response: error.response?.data,
-            status: error.response?.status
-        });
-        res.status(500).json({ 
+        console.error('Translation error:', error);
+        const statusCode = error.response?.status === 429 ? 429 : 500;
+        res.status(statusCode).json({
+            success: false,
             error: 'Translation failed',
             details: error.message,
             apiError: error.response?.data
@@ -238,75 +318,69 @@ app.post('/api/translate-document', async (req, res) => {
     }
 });
 
-// Check translation status
-app.get('/api/translation-status/:operationId(*)', async (req, res) => {
+// Get translation status endpoint
+app.get('/api/translation-status/:blobName', async (req, res) => {
     try {
-        const operationLocation = req.params.operationId;
-        console.log('Checking status for operation:', operationLocation);
+        const { blobName } = req.params;
+        if (!blobName) {
+            return res.status(400).json({
+                success: false,
+                error: 'Blob name is required',
+                details: 'No blob name provided in the request'
+            });
+        }
 
-        // Use the operation URL directly from Azure
-        const response = await axios.get(
-            operationLocation,
+        console.log('Checking translation status for blob:', blobName);
+        const containerClient = blobServiceClient.getContainerClient(containerName);
+        const blockBlobClient = containerClient.getBlockBlobClient(blobName);
+
+        const exists = await blockBlobClient.exists();
+        if (!exists) {
+            return res.status(404).json({
+                success: false,
+                error: 'Translated document not found',
+                details: `Blob ${blobName} does not exist`
+            });
+        }
+
+        // Generate SAS URL for download
+        const sasToken = generateBlobSASQueryParameters(
             {
-                headers: {
-                    'Ocp-Apim-Subscription-Key': translatorKey,
-                    'Ocp-Apim-Subscription-Region': translatorRegion,
-                    'Content-Type': 'application/json'
-                }
-            }
-        );
+                containerName,
+                blobName,
+                permissions: BlobSASPermissions.parse("r"),
+                startsOn: new Date(),
+                expiresOn: new Date(new Date().valueOf() + 24 * 60 * 60 * 1000),
+            },
+            sharedKeyCredential
+        ).toString();
 
-        console.log('Status check response:', response.data);
-        res.json(response.data);
-    } catch (error) {
-        console.error('Status check error details:', {
-            message: error.message,
-            response: error.response?.data,
-            status: error.response?.status,
-            url: error.config?.url
+        const downloadUrl = `${blockBlobClient.url}?${sasToken}`;
+        console.log('Generated download URL for blob:', blobName);
+
+        res.json({
+            success: true,
+            status: 'Succeeded',
+            downloadUrl,
+            message: 'Translation completed'
         });
-        res.status(500).json({ 
+
+    } catch (error) {
+        console.error('Status check error:', error);
+        res.status(500).json({
+            success: false,
             error: 'Status check failed',
-            details: error.message,
-            apiError: error.response?.data
+            details: error.message
         });
-    }
-});
-
-// Test Translator service access
-async function testTranslatorAccess() {
-    try {
-        const response = await axios.get(
-            `${translatorEndpoint}languages`,
-            {
-                headers: {
-                    'Ocp-Apim-Subscription-Key': translatorKey,
-                    'Ocp-Apim-Subscription-Region': translatorRegion
-                }
-            }
-        );
-        console.log('Translator service test successful:', response.status);
-        return true;
-    } catch (error) {
-        console.error('Translator service test failed:', {
-            status: error.response?.status,
-            message: error.message,
-            data: error.response?.data
-        });
-        return false;
-    }
-}
-
-// Call this when server starts
-testTranslatorAccess().then(isAvailable => {
-    if (isAvailable) {
-        console.log('Translator service is accessible');
-    } else {
-        console.log('WARNING: Translator service is not accessible');
     }
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, '0.0.0.0', () => {
+app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
+    console.log('Available endpoints:');
+    console.log('- GET  /health');
+    console.log('- POST /api/upload-document');
+    console.log('- POST /api/translate-document');
+    console.log('- GET  /api/translation-status/:blobName');
 }); 

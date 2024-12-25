@@ -507,3 +507,226 @@ style.textContent = `
 `;
 
 document.head.appendChild(style);
+
+// Document translation functionality
+async function uploadDocument(file) {
+    try {
+        // First check if server is available
+        const healthCheck = await fetch('http://localhost:3000/health');
+        if (!healthCheck.ok) {
+            throw new Error('Server is not responding');
+        }
+
+        // Create form data
+        const formData = new FormData();
+        formData.append('document', file);
+
+        // Get selected languages
+        const sourceLanguage = document.querySelectorAll('.language-select')[0].value;
+        const targetLanguage = document.querySelectorAll('.language-select')[1].value;
+
+        // Show processing status
+        const translationStatus = document.querySelector('.translation-status');
+        const statusMessage = document.querySelector('.status-message');
+        const progressBarFill = document.querySelector('.progress-bar-fill');
+        
+        translationStatus.style.display = 'block';
+        statusMessage.textContent = 'Uploading document...';
+        progressBarFill.style.width = '20%';
+
+        // Upload the document
+        console.log('Uploading document...');
+        const uploadResponse = await fetch('http://localhost:3000/api/upload-document', {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!uploadResponse.ok) {
+            const errorData = await uploadResponse.json();
+            throw new Error(errorData.details || 'Document upload failed');
+        }
+
+        const uploadData = await uploadResponse.json();
+        console.log('Upload response:', uploadData); // Debug log
+
+        if (!uploadData.success || !uploadData.blobName || !uploadData.sasUrl) {
+            console.error('Invalid upload response:', uploadData);
+            throw new Error('Invalid response from upload endpoint');
+        }
+
+        progressBarFill.style.width = '40%';
+        statusMessage.textContent = 'Starting translation...';
+
+        // Store the blob name for later use
+        const originalBlobName = uploadData.blobName;
+
+        // Prepare translation request
+        const translationRequest = {
+            sourceLanguage,
+            targetLanguage,
+            documentUrl: uploadData.sasUrl,
+            blobName: originalBlobName // Make sure blobName is included
+        };
+        console.log('Sending translation request:', translationRequest); // Debug log
+
+        // Send translation request
+        const translationResponse = await fetch('http://localhost:3000/api/translate-document', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(translationRequest)
+        });
+
+        if (!translationResponse.ok) {
+            const errorText = await translationResponse.text();
+            console.error('Translation error response:', {
+                status: translationResponse.status,
+                statusText: translationResponse.statusText,
+                body: errorText
+            });
+            try {
+                const errorData = JSON.parse(errorText);
+                throw new Error(errorData.details || errorData.error || 'Translation request failed');
+            } catch (e) {
+                throw new Error(`Translation failed: ${translationResponse.status} ${translationResponse.statusText}`);
+            }
+        }
+
+        const translationData = await translationResponse.json();
+        console.log('Translation response data:', translationData); // Debug log
+
+        if (!translationData.success || !translationData.targetBlobName) {
+            console.error('Invalid translation response:', translationData);
+            throw new Error('Invalid translation response: ' + JSON.stringify(translationData));
+        }
+
+        progressBarFill.style.width = '60%';
+        statusMessage.textContent = 'Translation in progress...';
+
+        // Poll for translation status
+        const translatedUrl = await pollTranslationStatus(translationData.targetBlobName);
+        progressBarFill.style.width = '100%';
+        statusMessage.textContent = 'Translation completed! Downloading...';
+
+        // Download the translated document
+        window.location.href = translatedUrl;
+
+        // Hide status after a delay
+        setTimeout(() => {
+            translationStatus.style.display = 'none';
+            progressBarFill.style.width = '0%';
+        }, 3000);
+
+    } catch (error) {
+        console.error('Translation error:', error);
+        const translationStatus = document.querySelector('.translation-status');
+        const statusMessage = document.querySelector('.status-message');
+        const progressBarFill = document.querySelector('.progress-bar-fill');
+        
+        translationStatus.style.display = 'block';
+        statusMessage.textContent = `Translation failed: ${error.message}`;
+        progressBarFill.style.width = '0%';
+        
+        throw error;
+    }
+}
+
+async function pollTranslationStatus(blobName) {
+    const maxAttempts = 30;
+    const delayMs = 2000;
+    let attempts = 0;
+
+    while (attempts < maxAttempts) {
+        try {
+            const response = await fetch(`http://localhost:3000/api/translation-status/${blobName}`);
+            if (!response.ok) {
+                if (response.status === 404) {
+                    // Document not ready yet, wait and retry
+                    await new Promise(resolve => setTimeout(resolve, delayMs));
+                    attempts++;
+                    continue;
+                }
+                const errorData = await response.json();
+                throw new Error(errorData.details || 'Status check failed');
+            }
+
+            const data = await response.json();
+            if (data.status === 'Succeeded') {
+                return data.downloadUrl;
+            }
+
+            // If not succeeded, wait and retry
+            await new Promise(resolve => setTimeout(resolve, delayMs));
+            attempts++;
+        } catch (error) {
+            console.error('Status check error:', error);
+            throw new Error(`Status check failed: ${error.message}`);
+        }
+    }
+
+    throw new Error('Translation timed out. Please try again.');
+}
+
+// Document upload event handlers
+const documentUploadArea = document.querySelector('.document-upload-area');
+const documentUploadInput = document.querySelector('#document-upload');
+const translateDocumentBtn = document.querySelector('#translate-document-btn');
+let selectedFile = null;
+
+documentUploadArea.addEventListener('click', () => {
+    documentUploadInput.click();
+});
+
+documentUploadArea.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    documentUploadArea.style.borderColor = getComputedStyle(document.documentElement).getPropertyValue('--primary-color');
+    documentUploadArea.style.background = getComputedStyle(document.documentElement).getPropertyValue('--hover-color');
+});
+
+documentUploadArea.addEventListener('dragleave', (e) => {
+    e.preventDefault();
+    documentUploadArea.style.borderColor = '';
+    documentUploadArea.style.background = '';
+});
+
+documentUploadArea.addEventListener('drop', (e) => {
+    e.preventDefault();
+    documentUploadArea.style.borderColor = '';
+    documentUploadArea.style.background = '';
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+        handleFileSelection(files[0]);
+    }
+});
+
+documentUploadInput.addEventListener('change', (e) => {
+    if (e.target.files.length > 0) {
+        handleFileSelection(e.target.files[0]);
+    }
+});
+
+function handleFileSelection(file) {
+    const validTypes = [
+        'application/pdf',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'text/plain',
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+    ];
+
+    if (!validTypes.includes(file.type)) {
+        alert('Please upload a supported document format (PDF, DOCX, TXT, or PPTX)');
+        return;
+    }
+
+    selectedFile = file;
+    translateDocumentBtn.disabled = false;
+    documentUploadArea.querySelector('p').textContent = `Selected file: ${file.name}`;
+}
+
+translateDocumentBtn.addEventListener('click', () => {
+    if (selectedFile) {
+        uploadDocument(selectedFile).catch(console.error);
+    }
+});
