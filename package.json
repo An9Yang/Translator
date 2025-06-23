@@ -1,20 +1,28 @@
 {
   "name": "translate_tool_with_gpt",
   "version": "1.0.0",
-  "description": "Potential instructions to consider for creating an interactive science experiment simulation game for elementary students:",
-  "main": "p5.js",
+  "description": "Professional translation tool with Azure Translator and OpenAI integration",
+  "main": "src/server/server.js",
   "scripts": {
+    "start": "node src/server/server.js",
+    "dev": "nodemon src/server/server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
+  "keywords": [
+    "translation",
+    "azure",
+    "openai",
+    "multilingual"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@azure/storage-blob": "^12.26.0",
     "axios": "^1.7.9",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
-    "express": "^4.21.2",
-    "multer": "^1.4.5-lts.1"
+    "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
   }
 }
